@@ -28,6 +28,7 @@ with open("input_day3.txt") as f:
         size = [int(width), int(height)]
         claims.append(Claim(claim_nbr, coord, size))
 
+# Part 1
 # Check overlap
 for c in claims:
     x = c.coord[0]
@@ -48,3 +49,21 @@ for i in range(0, max_size):
 
 print("Overlapping: {}".format(overlap))
 
+# Part 2
+# Find the one claim that doesn't overlap with any other claims
+for c in claims:
+    no_overlap = True
+    x = c.coord[0]
+    y = c.coord[1]
+    w = c.size[0]
+    h = c.size[1]
+    print("Claim: {}, x: {}, y: {}, w: {}, h: {}".format(c.id, x, y, w, h))
+    for i in range(0, w):
+        for j in range(0, h):
+            if fabric[x+i][y+j] > 1:
+                no_overlap = False
+    if no_overlap is True:
+        print("Claim {} has no overlap".format(c.id))
+        exit()
+
+print("No claim that has no overlap found")
