@@ -6,6 +6,50 @@ import (
 	"unicode"
 )
 
+func collapsePolymer(poly []rune) int {
+	var finished = false
+	for !finished {
+		for i, v := range poly {
+			if i >= len(poly)-1 {
+				finished = true
+				break
+			}
+			if unicode.IsLower(v) {
+				if unicode.IsUpper(poly[i+1]) {
+					vNext := unicode.ToLower(poly[i+1])
+					if v == vNext {
+						poly = append(poly[:i], poly[i+2:]...)
+						//slice is changed let's start from the start again
+						break
+					}
+				}
+			} else {
+				if unicode.IsLower(poly[i+1]) {
+					vNext := unicode.ToUpper(poly[i+1])
+					if v == vNext {
+						poly = append(poly[:i], poly[i+2:]...)
+						//slice is changed let's start from the start again
+						break
+					}
+				}
+			}
+		}
+	}
+	//-1 for len is for linefeed
+	result := len(poly) - 1
+	return result
+}
+
+func removeUnit(letter rune, runes []rune) []rune {
+	var result []rune
+	for _, c := range runes {
+		if c != letter && c != unicode.ToUpper(letter) {
+			result = append(result, c)
+		}
+	}
+	return result
+}
+
 func main() {
 	//read input data from file
 	input, err := ioutil.ReadFile("input_day5.txt")
@@ -14,41 +58,21 @@ func main() {
 	}
 	// convert byte slice to rune slice
 	var polymers = []rune(string(input))
-	var finished = false
-	var counter = 0
-	for !finished {
-		for i, v := range polymers {
-			if i >= len(polymers)-1 {
-				finished = true
-				break
-			}
-			if unicode.IsLower(v) {
-				if unicode.IsUpper(polymers[i+1]) {
-					vNext := unicode.ToLower(polymers[i+1])
-					if v == vNext {
-						polymers = append(polymers[:i], polymers[i+2:]...)
-						counter = 0
-						//slice is changed let's start from the start again
-						break
-					}
-				}
-			} else {
-				if unicode.IsLower(polymers[i+1]) {
-					vNext := unicode.ToUpper(polymers[i+1])
-					if v == vNext {
-						polymers = append(polymers[:i], polymers[i+2:]...)
-						counter = 0
-						//slice is changed let's start from the start again
-						break
-					}
-				}
-			}
-		}
-		//there were no more changes to the polymer
-		if counter >= len(polymers)-1 {
-			finished = true
+
+	//Part One
+	fmt.Printf("Part One Result: %d\n", collapsePolymer(polymers))
+
+	//Part Two
+	alphabet := "abcdefghijklmnopqrstuvwxyz"
+	var bestLetter rune
+	shortest := 70000
+	for _, letter := range alphabet {
+		newPolymers := removeUnit(letter, []rune(string(input)))
+		count := collapsePolymer(newPolymers)
+		if count < shortest {
+			shortest = count
+			bestLetter = letter
 		}
 	}
-	//-1 for len is for linefeed
-	fmt.Printf("Result: %d", len(polymers)-1)
+	fmt.Printf("Part Two Result: %c: %d\n", bestLetter, shortest)
 }
