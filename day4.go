@@ -23,7 +23,58 @@ type guard struct {
 
 type guards map[int]*guard
 
+func highestFrequency(g guards, idSleepy int) (int, int) {
+	layout := "2006-01-02 15:04"
+	//Check what times the guard is most likely to be asleep
+	var table map[string][60]int
+	table = make(map[string][60]int)
+	for i := range g[idSleepy].sleeping {
+		var mins [60]int
+		startTime := (g[idSleepy].sleeping[i].start.Format(layout))
+		endTime := (g[idSleepy].sleeping[i].stop.Format(layout))
+		end := strings.Index(startTime, " ")
+		date := startTime[:end]
+		start := strings.Index(startTime, ":") + 1
+		startMinute, _ := strconv.Atoi(startTime[start:])
+		start = strings.Index(endTime, ":") + 1
+		endMinute, _ := strconv.Atoi(endTime[start:])
+
+		//check if date is already added to the map
+		_, ok := table[date]
+		if !ok {
+			for i = startMinute; i < endMinute; i++ {
+				mins[i] = 1
+			}
+			//not in the map, add to map and set number of occurences to 1
+			table[date] = mins
+		} else {
+			mins = table[date]
+			for i = startMinute; i < endMinute; i++ {
+				mins[i] = 1
+			}
+		}
+	}
+	//Find most frequent minute
+	var frequency [60]int
+	for i := range table {
+		for j := range table[i] {
+			if table[i][j] == 1 {
+				frequency[j]++
+			}
+		}
+	}
+	//get index of the highest frequency
+	iMax := 0
+	for i := range frequency {
+		if frequency[i] > frequency[iMax] {
+			iMax = i
+		}
+	}
+	return iMax, frequency[iMax]
+}
+
 func main() {
+	layout := "2006-01-02 15:04"
 	//read input data from file
 	shiftFile, err := os.Open("input_day4.txt")
 	fmt.Print(err)
@@ -47,8 +98,6 @@ func main() {
 	var sleepStart time.Time
 	var sleepStop time.Time
 	var sleepTime time.Time
-	//	sleeping := false
-	layout := "2006-01-02 15:04"
 
 	//loop trough rows and add data to each guard and add it to the map
 	for _, row := range shifts {
@@ -88,72 +137,37 @@ func main() {
 			g[guardId].totalSleepTime = g[guardId].totalSleepTime + int(sleepStop.Sub(sleepStart).Minutes())
 		}
 	}
-	//find guard that has slept the most
+	//Strategy 1: Find the guard that has the most minutes asleep.
+	//What minute does that guard spend asleep the most?
+	//Find guard that has slept the most
 	idSleepy := 0
 	maxSleepTime := 0
-	first := true
 	for _, i := range g {
-		if first {
-			first = false
+		if i.totalSleepTime > maxSleepTime {
 			maxSleepTime = i.totalSleepTime
-		} else {
-			if i.totalSleepTime > maxSleepTime {
-				maxSleepTime = i.totalSleepTime
-				idSleepy = i.id
-			}
+			idSleepy = i.id
 		}
 	}
-	fmt.Println(strconv.Itoa(idSleepy) + ": " + strconv.Itoa(g[idSleepy].totalSleepTime))
-
-	//Check what times the sleepy one is most likely to be asleep
-	var table map[string][60]int
-	table = make(map[string][60]int)
-	for i := range g[idSleepy].sleeping {
-		var mins [60]int
-		startTime := (g[idSleepy].sleeping[i].start.Format(layout))
-		endTime := (g[idSleepy].sleeping[i].stop.Format(layout))
-		end := strings.Index(startTime, " ")
-		date := startTime[:end]
-		start := strings.Index(startTime, ":") + 1
-		startMinute, _ := strconv.Atoi(startTime[start:])
-		start = strings.Index(endTime, ":") + 1
-		endMinute, _ := strconv.Atoi(endTime[start:])
-
-		//check if date is already added to the map
-		_, ok := table[date]
-		if !ok {
-			for i = startMinute; i < endMinute; i++ {
-				mins[i] = 1
-			}
-			//not in the map, add to map and set number of occurences to 1
-			table[date] = mins
-		} else {
-			mins = table[date]
-			for i = startMinute; i < endMinute; i++ {
-				mins[i] = 1
-			}
-		}
-		for i := range table {
-			fmt.Println(table[i])
-		}
-	}
-	//Find most frequent minute
-	var frequency [60]int
-	for i := range table {
-		for j := range table[i] {
-			if table[i][j] == 1 {
-				frequency[j]++
-			}
-		}
-	}
-	fmt.Println(frequency)
-	//get index of the highest frequency
-	iMax := 0
-	for i := range frequency {
-		if frequency[i] > frequency[iMax] {
-			iMax = i
-		}
-	}
+	//The minute guard sleeps most
+	iMax, _ := highestFrequency(g, idSleepy)
+	//result
 	result := idSleepy * iMax
-	fmt.Println(strconv.Itoa(idSleepy) + " * " + strconv.Itoa(iMax) + " = " + strconv.Itoa(result))
+	fmt.Println("Part one: " + strconv.Itoa(idSleepy) + " * " + strconv.Itoa(iMax) + " = " + strconv.Itoa(result))
+
+	//Strategy 2: Of all guards, which guard is most frequently asleep on the same minute?
+	record := 0
+	minute := 0
+	var guard int
+
+	for _, i := range g {
+		min, freq := highestFrequency(g, i.id)
+		if freq > record {
+			record = freq
+			guard = i.id
+			minute = min
+		}
+	}
+	fmt.Printf("Guard %d slept %d times during minute %d\n", guard, record, minute)
+	result = guard * minute
+	fmt.Printf("Result: %d\n", result)
 }
